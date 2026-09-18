@@ -99,6 +99,16 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 .segmented button.active{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.14);font-weight:600;}
 .segmented button:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
 
+.seg-lg{display:flex;background:rgba(120,120,122,.16);border-radius:10px;padding:2px;}
+.seg-lg button{
+  flex:1;border:0;background:transparent;
+  padding:8px 10px;font-size:14px;border-radius:8px;
+  color:var(--ink);cursor:pointer;font-family:inherit;
+  transition:background .15s,font-weight .15s;
+}
+.seg-lg button.active{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.14);font-weight:600;}
+.seg-lg button:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+
 .chips{display:flex;flex-wrap:wrap;gap:8px;}
 .chips button{
   border:1px solid var(--hairline);background:#fff;
@@ -341,19 +351,38 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
   </div>
 
   <!-- ============ 模式二：纸品对比 ============ -->
-  <div id="modePaper" hidden="">
+  <div id="modePaper" hidden>
     <section class="card calc-card" aria-label="纸品每张价计算">
       <div class="field">
         <label for="pName">商品名称</label>
         <input type="text" id="pName" placeholder="例如：维达超韧 抽纸" autocomplete="off">
-        <p class="hint">输入名称后会自动查找相似的历史记录</p>
+        <p class="hint">名称里带「卫生纸 / 纸巾 / 厨房纸」等关键词时会自动识别品类</p>
       </div>
 
-      <div class="grid-3">
-        <div class="field">
-          <label for="pPrice">总价（元）</label>
-          <input type="number" id="pPrice" inputmode="decimal" min="0" step="0.01" placeholder="0.00">
+      <div class="field">
+        <div class="seg-lg" id="formSeg" role="group" aria-label="包装形式">
+          <button type="button" data-form="sheet" class="active">抽取式（按抽数）</button>
+          <button type="button" data-form="roll">卷纸（按卷数）</button>
         </div>
+      </div>
+
+      <div class="field">
+        <label>品类</label>
+        <div class="chips" id="catChips" role="group" aria-label="品类">
+          <button type="button" data-cat="" class="active">不确定</button>
+          <button type="button" data-cat="tissue">面巾纸</button>
+          <button type="button" data-cat="toilet">卫生纸</button>
+          <button type="button" data-cat="kitchen">厨房纸</button>
+        </div>
+        <p class="hint">输入商品名称会自动识别品类，对比按同品类列出全部记录</p>
+      </div>
+
+      <div class="field">
+        <label for="pPrice">总价（元）</label>
+        <input type="number" id="pPrice" inputmode="decimal" min="0" step="0.01" placeholder="0.00">
+      </div>
+
+      <div class="grid-2" id="sheetFields">
         <div class="field">
           <label for="pPerPack">每包抽数</label>
           <input type="number" id="pPerPack" inputmode="numeric" min="0" step="1" placeholder="如 130">
@@ -361,6 +390,17 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
         <div class="field">
           <label for="pPacks">包数</label>
           <input type="number" id="pPacks" inputmode="numeric" min="0" step="1" placeholder="1">
+        </div>
+      </div>
+
+      <div class="grid-2" id="rollFields" hidden>
+        <div class="field">
+          <label for="rRolls">卷数</label>
+          <input type="number" id="rRolls" inputmode="numeric" min="0" step="1" placeholder="如 10">
+        </div>
+        <div class="field">
+          <label for="rPerRoll">每卷节数（选填）</label>
+          <input type="number" id="rPerRoll" inputmode="numeric" min="0" step="1" placeholder="包装有印才填">
         </div>
       </div>
 
@@ -390,6 +430,7 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
               <button type="button" data-std="tissue">纸巾 GB/T 20808</button>
               <button type="button" data-std="toilet">卫生纸 GB/T 20810</button>
               <button type="button" data-std="kitchen">厨房纸 GB/T 26174</button>
+              <button type="button" data-std="enterprise">企标</button>
             </div>
           </div>
           <div class="field wide">
@@ -405,7 +446,7 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
       </details>
 
       <div class="result">
-        <span class="result-label">每张价格</span>
+        <span class="result-label" id="pResultLabel">每张价格</span>
         <span class="result-value" id="pPerSheetValue">¥ —<span class="per">/张</span></span>
         <div class="result-sub" id="pResultSub">填写总价和抽数后自动计算</div>
       </div>
@@ -413,24 +454,24 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
       <button class="btn-primary" id="pSaveBtn" type="button" disabled="">记录这次价格</button>
     </section>
 
-    <section class="section" id="pSimilarSection" hidden="" aria-label="相似纸品对比">
+    <section class="section" id="pSimilarSection" aria-label="相似纸品对比" hidden="">
       <div class="section-head">
-        <h2>相似纸品对比<span class="count-pill" id="pSimilarCount">0</span></h2>
+        <h2><span id="pSimilarTitle">相似纸品对比</span><span class="count-pill" id="pSimilarCount">0</span></h2>
       </div>
       <div class="card">
-        <div class="sim-summary" id="pSimilarSummary"></div>
-        <div id="pSimilarList"></div>
+        <div class="sim-summary" id="pSimilarSummary">「卫生纸」共 4 条记录，填好价格等信息即可对比。</div>
+        <div id="pSimilarList"><div class="sim-row"><div class="sim-info"><div class="sim-name">奥乐齐超值方包卫生纸<span class="pill pill-green">最低</span><span class="pill pill-orange">形态不同</span></div><div class="sim-meta">09/18 14:34 · ¥3.90 / 175张 · 卫生纸 · 2层 · 165×210mm</div></div><div class="sim-price"><div class="sim-perjin">¥0.022<span class="per">/张</span></div></div></div><div class="sim-row"><div class="sim-info"><div class="sim-name">奥乐齐超值无芯卷纸<span class="pill pill-gray">未分组</span></div><div class="sim-meta">09/18 14:52 · ¥16.90 / 12卷 · 5层 · 162×138mm · 卫生纸 GB/T 20810</div></div><div class="sim-price"><div class="sim-perjin">¥1.41<span class="per">/卷</span></div></div></div><div class="sim-row"><div class="sim-info"><div class="sim-name">奥乐齐超值卫生纸<span class="pill pill-gray">未分组</span></div><div class="sim-meta">09/18 14:49 · ¥14.90 / 10卷 · 卫生纸 · 4层 · 101×138mm · 企标</div></div><div class="sim-price"><div class="sim-perjin">¥1.49<span class="per">/卷</span></div></div></div><div class="sim-row"><div class="sim-info"><div class="sim-name">ALDI HOME经典有芯卫生纸<span class="pill pill-gray">未分组</span></div><div class="sim-meta">09/18 14:23 · ¥24.90 / 10卷 · 4层 · 108×138mm · 卫生纸 GB/T 20810 · 优等品</div></div><div class="sim-price"><div class="sim-perjin">¥2.49<span class="per">/卷</span></div></div></div></div>
       </div>
     </section>
 
     <section class="section" aria-label="纸品历史记录">
       <div class="section-head">
-        <h2>历史记录<span class="count-pill" id="pHistoryCount">0</span></h2>
-        <button class="link-btn" id="pClearBtn" type="button" disabled="">清空</button>
+        <h2>历史记录<span class="count-pill" id="pHistoryCount">4</span></h2>
+        <button class="link-btn" id="pClearBtn" type="button">清空</button>
       </div>
       <div class="card">
-        <div id="pHistoryList"></div>
-        <p class="empty" id="pEmptyTip">还没有纸品记录。算一笔每张价，点击「记录这次价格」即可保存。</p>
+        <div id="pHistoryList"><div class="hist-row" data-id="mu6lsjymra4m"><div class="hist-info"><div class="hist-name">ALDI HOME 厨房纸</div><div class="hist-meta">09/18 14:54 · ¥6.90 / 2卷（75节/卷） · 2层 · 225×230mm · 厨房纸 GB/T 26174</div></div><div class="hist-right"><div class="hist-perjin">¥3.45<span class="per">/卷</span></div><button class="del-btn" data-id="mu6lsjymra4m" type="button">删除</button></div></div><div class="hist-row" data-id="mu6lplu34387"><div class="hist-info"><div class="hist-name">奥乐齐超值无芯卷纸</div><div class="hist-meta">09/18 14:52 · ¥16.90 / 12卷 · 5层 · 162×138mm · 卫生纸 GB/T 20810</div></div><div class="hist-right"><div class="hist-perjin">¥1.41<span class="per">/卷</span></div><button class="del-btn" data-id="mu6lplu34387" type="button">删除</button></div></div><div class="hist-row" data-id="mu6lm9ztpj00"><div class="hist-info"><div class="hist-name">奥乐齐超值卫生纸</div><div class="hist-meta">09/18 14:49 · ¥14.90 / 10卷 · 卫生纸 · 4层 · 101×138mm · 企标</div></div><div class="hist-right"><div class="hist-perjin">¥1.49<span class="per">/卷</span></div><button class="del-btn" data-id="mu6lm9ztpj00" type="button">删除</button></div></div><div class="hist-row" data-id="mu6koz72t2t2"><div class="hist-info"><div class="hist-name">ALDI HOME经典有芯卫生纸</div><div class="hist-meta">09/18 14:23 · ¥24.90 / 10卷 · 4层 · 108×138mm · 卫生纸 GB/T 20810 · 优等品</div></div><div class="hist-right"><div class="hist-perjin">¥2.49<span class="per">/卷</span></div><button class="del-btn" data-id="mu6koz72t2t2" type="button">删除</button></div></div></div>
+        <p class="empty" id="pEmptyTip" hidden="">还没有卷纸记录。算一笔价格，点击「记录这次价格」即可保存。</p>
       </div>
     </section>
   </div>
@@ -440,7 +481,7 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
 
 <div class="toast" id="toast" role="status"></div>
 
-<div class="modal-overlay" id="stdOverlay" hidden>
+<div class="modal-overlay" id="stdOverlay" hidden="">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="stdTitle">
     <div class="modal-head">
       <h3 id="stdTitle">生活用纸标准速查</h3>
@@ -522,7 +563,8 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
   var JIN_KEY = 'jin-price-records-v1';
   var PAPER_KEY = 'paper-records-v1';
   var UNIT_TO_G = { g:1, kg:1000, jin:500, liang:50 };
-  var STD_LABEL = { tissue:'纸巾 GB/T 20808', toilet:'卫生纸 GB/T 20810', kitchen:'厨房纸 GB/T 26174' };
+  var STD_LABEL = { tissue:'纸巾 GB/T 20808', toilet:'卫生纸 GB/T 20810', kitchen:'厨房纸 GB/T 26174', enterprise:'企标' };
+  var CAT_LABEL = { tissue:'面巾纸', toilet:'卫生纸', kitchen:'厨房纸' };
 
   var $ = function(id){ return document.getElementById(id); };
   var toast = $('toast');
@@ -825,6 +867,11 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
      ============================================================ */
   var paperRecords = loadStore(PAPER_KEY);
   var pName = $('pName');
+  var formSeg = $('formSeg');
+  var sheetFields = $('sheetFields');
+  var rollFields = $('rollFields');
+  var rRolls = $('rRolls');
+  var rPerRoll = $('rPerRoll');
   var pPrice = $('pPrice');
   var pPerPack = $('pPerPack');
   var pPacks = $('pPacks');
@@ -833,11 +880,14 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
   var pWid = $('pWid');
   var stdChips = $('stdChips');
   var gradeChips = $('gradeChips');
+  var catChips = $('catChips');
   var pPerSheetValue = $('pPerSheetValue');
+  var pResultLabel = $('pResultLabel');
   var pResultSub = $('pResultSub');
   var pSaveBtn = $('pSaveBtn');
   var pSimilarSection = $('pSimilarSection');
   var pSimilarCount = $('pSimilarCount');
+  var pSimilarTitle = $('pSimilarTitle');
   var pSimilarSummary = $('pSimilarSummary');
   var pSimilarList = $('pSimilarList');
   var pHistoryCount = $('pHistoryCount');
@@ -845,8 +895,10 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
   var pHistoryList = $('pHistoryList');
   var pEmptyTip = $('pEmptyTip');
 
-  var paperStd = '';    // '' | tissue | toilet
+  var paperStd = '';    // '' | tissue | toilet | kitchen
   var paperGrade = '';  // '' | 优等品 | 一等品 | 合格品
+  var paperForm = 'sheet'; // 'sheet' 抽取式 | 'roll' 卷纸
+  var paperCat = '';    // '' | tissue | toilet | kitchen
 
   function fmtPerSheet(n){
     return '¥' + (n >= 0.1 ? n.toFixed(2) : n.toFixed(3));
@@ -861,13 +913,23 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
 
   function currentPaperCalc(){
     var price = parseFloat(pPrice.value);
+    if (!(price > 0)) return null;
+    if (paperForm === 'roll') {
+      var rolls = parseFloat(rRolls.value);
+      if (!(rolls > 0)) return null;
+      var prs = parseFloat(rPerRoll.value);
+      if (!(prs > 0)) prs = 0;
+      var rc = { form:'roll', price: price, rolls: rolls, perRoll: price / rolls, perRollSheets: prs, total: 0, perSheet: 0 };
+      if (prs > 0) { rc.total = rolls * prs; rc.perSheet = price / rc.total; }
+      return rc;
+    }
     var per = parseFloat(pPerPack.value);
     var packs = parseFloat(pPacks.value);
-    if (!(price > 0) || !(per > 0)) return null;
+    if (!(per > 0)) return null;
     if (!(packs > 0)) packs = 1;
     var total = per * packs;
     if (!(total > 0)) return null;
-    return { price: price, total: total, perSheet: price / total };
+    return { form:'sheet', price: price, total: total, perSheet: price / total, perRoll: 0, rolls: 0, perRollSheets: 0 };
   }
 
   function currentPaperMeta(){
@@ -880,7 +942,13 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
   }
 
   function paperMetaStr(r){
-    var parts = [fmtDate(r.ts), fmtMoney(r.price) + ' / ' + fmtSheets(r.total) + '张'];
+    var f = r.form || 'sheet';
+    var qty = f === 'roll'
+      ? fmtSheets(r.rolls || 0) + '卷' + (r.perRollSheets ? '（' + r.perRollSheets + '节/卷）' : '')
+      : fmtSheets(r.total) + '张';
+    var parts = [fmtDate(r.ts), fmtMoney(r.price) + ' / ' + qty];
+    var rcat = categoryOf(r);
+    if (rcat && !STD_TO_CAT[r.std]) parts.push(CAT_LABEL[rcat]);
     if (r.ply) parts.push(r.ply + '层');
     if (r.len && r.wid) parts.push(r.len + '×' + r.wid + 'mm');
     if (r.std && STD_LABEL[r.std]) parts.push(STD_LABEL[r.std]);
@@ -894,19 +962,34 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
 
   function renderPaperResult(){
     var c = currentPaperCalc();
-    if (!c) {
-      pPerSheetValue.innerHTML = '¥ —<span class="per">/张</span>';
-      pResultSub.textContent = '填写总价和抽数后自动计算';
+    if (paperForm === 'roll') {
+      pResultLabel.textContent = '每卷价格';
+      if (!c) {
+        pPerSheetValue.innerHTML = '¥ —<span class="per">/卷</span>';
+        pResultSub.textContent = '填写总价和卷数后自动计算';
+      } else {
+        pPerSheetValue.innerHTML = fmtMoney(c.perRoll) + '<span class="per">/卷</span>';
+        pResultSub.textContent = c.perRollSheets > 0
+          ? '共 ' + fmtSheets(c.rolls) + ' 卷 · 约 ' + fmtSheets(c.total) + ' 张 · 每张约 ' + fmtFen(c.perSheet) + ' 分'
+          : '共 ' + fmtSheets(c.rolls) + ' 卷 · 包装若印了每卷节数，补填后可一并算每张价';
+      }
     } else {
-      pPerSheetValue.innerHTML = fmtPerSheet(c.perSheet) + '<span class="per">/张</span>';
-      pResultSub.textContent = '共 ' + fmtSheets(c.total) + ' 张 · 约合 ' + fmtFen(c.perSheet) + ' 分/张';
+      pResultLabel.textContent = '每张价格';
+      if (!c) {
+        pPerSheetValue.innerHTML = '¥ —<span class="per">/张</span>';
+        pResultSub.textContent = '填写总价和抽数后自动计算';
+      } else {
+        pPerSheetValue.innerHTML = fmtPerSheet(c.perSheet) + '<span class="per">/张</span>';
+        pResultSub.textContent = '共 ' + fmtSheets(c.total) + ' 张 · 约合 ' + fmtFen(c.perSheet) + ' 分/张';
+      }
     }
     updatePSaveBtn();
     renderPaperSimilar();
   }
 
-  /* 对比行状态：同组 / 信息不全 / 不同层数 / 不同标准 */
-  function rowStatus(curMeta, r){
+  /* 对比行状态：同组 / 信息不全 / 不同层数 / 不同标准 / 不同形态 */
+  function rowStatus(curForm, curMeta, r){
+    if ((r.form || 'sheet') !== curForm) return { cls:'pill-orange', text:'形态不同' };
     if (curMeta.ply === 0 && curMeta.std === '') return { cls:'pill-gray', text:'未分组' };
     var plyKnown = curMeta.ply > 0 && r.ply > 0;
     var stdKnown = curMeta.std !== '' && r.std !== '';
@@ -918,52 +1001,95 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
     return { cls:'pill-green', text:'同组' };
   }
 
-  function sizeDiffers(curMeta, r){
-    if (!(curMeta.area > 0) || !(r.area > 0)) return false;
-    var big = Math.max(curMeta.area, r.area);
-    return Math.abs(curMeta.area - r.area) / big > 0.10;
+  /* 可比尺寸：抽取式按单张面积，卷纸按每卷总面积（单张面积 × 每卷节数） */
+  function recArea(r){
+    if ((r.form || 'sheet') === 'roll') {
+      return (r.area > 0 && r.perRollSheets > 0) ? r.area * r.perRollSheets : 0;
+    }
+    return r.area || 0;
+  }
+  function curArea(meta){
+    if (paperForm === 'roll') {
+      var prs = parseFloat(rPerRoll.value);
+      return (meta.area > 0 && prs > 0) ? meta.area * prs : 0;
+    }
+    return meta.area;
+  }
+  function sizeDiffers(cArea, r){
+    var ra = recArea(r);
+    if (!(cArea > 0) || !(ra > 0)) return false;
+    var big = Math.max(cArea, ra);
+    return Math.abs(cArea - ra) / big > 0.10;
+  }
+
+  /* 品类判定：显式选择 → 执行标准 → 名称关键词 */
+  function detectCat(name){
+    if (/厨房纸/.test(name)) return 'kitchen';
+    if (/卫生纸|卷纸|厕纸|手纸/.test(name)) return 'toilet';
+    if (/面巾|纸巾|抽纸|手帕纸/.test(name)) return 'tissue';
+    return '';
+  }
+  var STD_TO_CAT = { tissue:'tissue', toilet:'toilet', kitchen:'kitchen' };
+  function categoryOf(r){
+    if (r.cat) return r.cat;
+    if (STD_TO_CAT[r.std]) return STD_TO_CAT[r.std];
+    return detectCat(r.name);
+  }
+  function setPaperCat(v){
+    paperCat = v;
+    updateChipUI(catChips, 'data-cat', v);
   }
 
   function renderPaperSimilar(){
-    var name = pName.value.trim();
     var c = currentPaperCalc();
     var meta = currentPaperMeta();
-    if (!name) { pSimilarSection.hidden = true; return; }
+    var cat = paperCat || detectCat(pName.value.trim());
+    if (!cat) { pSimilarSection.hidden = true; return; }
 
-    var matches = findSimilar(name, paperRecords);
+    var matches = [];
+    paperRecords.forEach(function(r){
+      if (categoryOf(r) === cat) matches.push({ r: r });
+    });
     if (matches.length === 0) { pSimilarSection.hidden = true; return; }
 
     pSimilarSection.hidden = false;
     pSimilarCount.textContent = matches.length;
+    pSimilarTitle.textContent = CAT_LABEL[cat] + ' · 全部记录';
 
-    /* 分组：同标准 + 同层数才算同组 */
+    var unit = paperForm === 'roll' ? '/卷' : '/张';
+    function metric(r){ return (r.form || 'sheet') === 'roll' ? r.perRoll : r.perSheet; }
+    function fmtM(n){ return paperForm === 'roll' ? fmtMoney(n) : fmtPerSheet(n); }
+    var curM = c ? (c.form === 'roll' ? c.perRoll : c.perSheet) : null;
+
+    /* 分组：同形态 + 同标准 + 同层数才算同组 */
     var curComplete = meta.ply > 0 && meta.std !== '';
     var sameGroup = [], others = [];
     matches.forEach(function(m){
-      if (curComplete && m.r.ply === meta.ply && m.r.std === meta.std) sameGroup.push(m);
+      if (curComplete && (m.r.form || 'sheet') === paperForm && m.r.ply === meta.ply && m.r.std === meta.std) sameGroup.push(m);
       else others.push(m);
     });
-    var byPrice = function(a, b){ return a.r.perSheet - b.r.perSheet; };
+    var byPrice = function(a, b){ return metric(a.r) - metric(b.r); };
     sameGroup.sort(byPrice);
     others.sort(byPrice);
     var ordered = sameGroup.concat(others);
 
     /* 摘要 */
+    var catName = CAT_LABEL[cat];
     var summaryHtml;
     if (!c) {
-      summaryHtml = '找到 ' + matches.length + ' 条相似记录，填好总价和抽数即可对比。';
+      summaryHtml = '「' + catName + '」共 ' + matches.length + ' 条记录，填好价格等信息即可对比。';
     } else if (!curComplete) {
-      summaryHtml = '当前 <strong>' + fmtPerSheet(c.perSheet) + '/张</strong>。在「补充信息」里填好层数和执行标准，才能按同标准 + 同层数公平对比。';
+      summaryHtml = '当前 <strong>' + fmtM(curM) + unit + '</strong>。「' + catName + '」共 ' + matches.length + ' 条记录；在「补充信息」里填好层数和执行标准，才能按同标准 + 同层数公平对比。';
     } else if (sameGroup.length === 0) {
-      summaryHtml = '当前 <strong>' + fmtPerSheet(c.perSheet) + '/张</strong>，暂时没有同组记录（' + meta.ply + '层 · ' + STD_LABEL[meta.std] + '）。';
+      summaryHtml = '当前 <strong>' + fmtM(curM) + unit + '</strong>，「' + catName + '」里没有同组记录（' + meta.ply + '层 · ' + STD_LABEL[meta.std] + '）。';
     } else {
       var best = sameGroup[0].r;
-      if (c.perSheet < best.perSheet - 1e-12) {
-        summaryHtml = '当前 <strong>' + fmtPerSheet(c.perSheet) + '/张</strong>，比同组所有记录都便宜。';
-      } else if (Math.abs(c.perSheet - best.perSheet) < 1e-12) {
-        summaryHtml = '当前 <strong>' + fmtPerSheet(c.perSheet) + '/张</strong>，与同组最低记录持平。';
+      if (curM < metric(best) - 1e-12) {
+        summaryHtml = '当前 <strong>' + fmtM(curM) + unit + '</strong>，比同组所有记录都便宜。';
+      } else if (Math.abs(curM - metric(best)) < 1e-12) {
+        summaryHtml = '当前 <strong>' + fmtM(curM) + unit + '</strong>，与同组最低记录持平。';
       } else {
-        summaryHtml = '当前 <strong>' + fmtPerSheet(c.perSheet) + '/张</strong>，比同组最低的「' + esc(best.name) + '」贵 ' + fmtPct(pctDiff(best.perSheet, c.perSheet)) + '。';
+        summaryHtml = '当前 <strong>' + fmtM(curM) + unit + '</strong>，比同组最低的「' + esc(best.name) + '」贵 ' + fmtPct(pctDiff(metric(best), curM)) + '。';
       }
     }
     pSimilarSummary.innerHTML = summaryHtml;
@@ -976,28 +1102,32 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
       bestId = allBest.r.id;
     }
 
+    var cArea = curArea(meta);
+
     pSimilarList.innerHTML = ordered.map(function(m){
       var r = m.r;
-      var st = rowStatus(meta, r);
+      var st = rowStatus(paperForm, meta, r);
       var pills = '<span class="pill ' + st.cls + '">' + st.text + '</span>';
-      if (sizeDiffers(meta, r)) pills += '<span class="pill pill-orange">尺寸差较大</span>';
+      if (sizeDiffers(cArea, r)) pills += '<span class="pill pill-orange">尺寸差较大</span>';
       var diffHtml = '';
-      if (c) {
-        if (Math.abs(r.perSheet - c.perSheet) < 1e-12) {
+      if (c && (r.form || 'sheet') === paperForm) {
+        if (Math.abs(metric(r) - curM) < 1e-12) {
           diffHtml = '<span class="diff same">与当前相同</span>';
-        } else if (r.perSheet < c.perSheet) {
-          diffHtml = '<span class="diff cheaper">比当前便宜 ' + fmtPct(pctDiff(c.perSheet, r.perSheet)) + '</span>';
+        } else if (metric(r) < curM) {
+          diffHtml = '<span class="diff cheaper">比当前便宜 ' + fmtPct(pctDiff(curM, metric(r))) + '</span>';
         } else {
-          diffHtml = '<span class="diff pricier">比当前贵 ' + fmtPct(pctDiff(c.perSheet, r.perSheet)) + '</span>';
+          diffHtml = '<span class="diff pricier">比当前贵 ' + fmtPct(pctDiff(curM, metric(r))) + '</span>';
         }
       }
+      var rUnit = (r.form || 'sheet') === 'roll' ? '/卷' : '/张';
+      var rPrice = (r.form || 'sheet') === 'roll' ? fmtMoney(metric(r)) : fmtPerSheet(metric(r));
       return '<div class="sim-row">' +
         '<div class="sim-info">' +
           '<div class="sim-name">' + esc(r.name) + (r.id === bestId ? '<span class="pill pill-green">最低</span>' : '') + pills + '</div>' +
           '<div class="sim-meta">' + paperMetaStr(r) + '</div>' +
         '</div>' +
         '<div class="sim-price">' +
-          '<div class="sim-perjin">' + fmtPerSheet(r.perSheet) + '<span class="per">/张</span></div>' +
+          '<div class="sim-perjin">' + rPrice + '<span class="per">' + rUnit + '</span></div>' +
           diffHtml +
         '</div>' +
       '</div>';
@@ -1006,22 +1136,40 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
 
   function renderPaperHistory(){
     var sorted = paperRecords.slice().sort(function(a, b){ return b.ts - a.ts; });
-    pHistoryCount.textContent = paperRecords.length;
-    pClearBtn.disabled = paperRecords.length === 0;
-    pEmptyTip.hidden = paperRecords.length > 0;
+    pHistoryCount.textContent = sorted.length;
+    pClearBtn.disabled = sorted.length === 0;
+    pEmptyTip.textContent = '还没有记录。算一笔价格，点击「记录这次价格」即可保存。';
+    if (sorted.length === 0) {
+      pHistoryList.innerHTML = '';
+      pEmptyTip.hidden = false;
+      return;
+    }
+    pEmptyTip.hidden = true;
 
     pHistoryList.innerHTML = sorted.map(function(r){
+      var rf = r.form || 'sheet';
+      var priceHtml = rf === 'roll'
+        ? fmtMoney(r.perRoll) + '<span class="per">/卷</span>'
+        : fmtPerSheet(r.perSheet) + '<span class="per">/张</span>';
+      var formPill = '<span class="pill pill-gray">' + (rf === 'roll' ? '卷纸' : '抽取式') + '</span>';
       return '<div class="hist-row" data-id="' + r.id + '">' +
         '<div class="hist-info">' +
-          '<div class="hist-name">' + esc(r.name) + '</div>' +
+          '<div class="hist-name">' + esc(r.name) + formPill + '</div>' +
           '<div class="hist-meta">' + paperMetaStr(r) + '</div>' +
         '</div>' +
         '<div class="hist-right">' +
-          '<div class="hist-perjin">' + fmtPerSheet(r.perSheet) + '<span class="per">/张</span></div>' +
+          '<div class="hist-perjin">' + priceHtml + '</div>' +
           '<button class="del-btn" data-id="' + r.id + '" type="button">删除</button>' +
         '</div>' +
       '</div>';
     }).join('');
+  }
+
+  function updateChipUI(container, attr, v){
+    var btns = container.querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].classList.toggle('active', btns[i].getAttribute(attr) === v);
+    }
   }
 
   function setPaperStd(v){
@@ -1039,6 +1187,43 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
     }
   }
 
+  function setPaperForm(f){
+    paperForm = f;
+    var btns = formSeg.querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].classList.toggle('active', btns[i].getAttribute('data-form') === f);
+    }
+    sheetFields.hidden = f !== 'sheet';
+    rollFields.hidden = f !== 'roll';
+    renderPaperResult();
+  }
+
+  function clearPaperForm(){
+    pName.value = '';
+    pPrice.value = '';
+    pPerPack.value = '';
+    pPacks.value = '';
+    rRolls.value = '';
+    rPerRoll.value = '';
+    pPly.value = '';
+    pLen.value = '';
+    pWid.value = '';
+    paperStd = '';
+    paperGrade = '';
+    paperCat = '';
+    updateChipUI(stdChips, 'data-std', '');
+    updateChipUI(gradeChips, 'data-grade', '');
+    updateChipUI(catChips, 'data-cat', '');
+    renderPaperResult();
+  }
+
+  formSeg.addEventListener('click', function(e){
+    var btn = e.target.closest('button[data-form]');
+    if (!btn) return;
+    setPaperForm(btn.getAttribute('data-form'));
+    clearPaperForm();
+  });
+
   stdChips.addEventListener('click', function(e){
     var btn = e.target.closest('button[data-std]');
     if (!btn) return;
@@ -1050,12 +1235,20 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
     if (!btn) return;
     setPaperGrade(btn.getAttribute('data-grade'));
   });
+  catChips.addEventListener('click', function(e){
+    var btn = e.target.closest('button[data-cat]');
+    if (!btn) return;
+    setPaperCat(btn.getAttribute('data-cat'));
+    renderPaperSimilar();
+  });
 
   pName.addEventListener('input', function(){
+    var d = detectCat(pName.value.trim());
+    if (d && d !== paperCat) setPaperCat(d);
     updatePSaveBtn();
     renderPaperSimilar();
   });
-  [pPrice, pPerPack, pPacks].forEach(function(el){
+  [pPrice, pPerPack, pPacks, rRolls, rPerRoll].forEach(function(el){
     el.addEventListener('input', renderPaperResult);
   });
   [pPly, pLen, pWid].forEach(function(el){
@@ -1068,35 +1261,39 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
     if (!c || !name) return;
     var meta = currentPaperMeta();
     paperRecords.unshift({
-      id: newId(), name: name,
-      price: c.price, perPack: c.total / (parseFloat(pPacks.value) > 0 ? parseFloat(pPacks.value) : 1),
-      packs: parseFloat(pPacks.value) > 0 ? parseFloat(pPacks.value) : 1,
+      id: newId(), name: name, form: c.form,
+      price: c.price,
+      perPack: c.form === 'sheet' ? c.total / (parseFloat(pPacks.value) > 0 ? parseFloat(pPacks.value) : 1) : 0,
+      packs: c.form === 'sheet' ? (parseFloat(pPacks.value) > 0 ? parseFloat(pPacks.value) : 1) : 0,
+      rolls: c.form === 'roll' ? c.rolls : 0,
+      perRoll: c.form === 'roll' ? c.perRoll : 0,
+      perRollSheets: c.perRollSheets || 0,
       total: c.total, perSheet: c.perSheet,
       ply: meta.ply, len: meta.len, wid: meta.wid, area: meta.area,
       std: meta.std, grade: meta.grade,
+      cat: paperCat || detectCat(name),
       ts: Date.now()
     });
     saveStore(PAPER_KEY, paperRecords);
     renderPaperHistory();
     renderPaperSimilar();
-    showToast('已记录：' + name + ' ' + fmtPerSheet(c.perSheet) + '/张');
+    showToast('已记录：' + name + ' ' + (c.form === 'roll' ? fmtMoney(c.perRoll) + '/卷' : fmtPerSheet(c.perSheet) + '/张'));
   }
 
   pSaveBtn.addEventListener('click', doPaperSave);
-  [pName, pPrice, pPerPack, pPacks].forEach(function(el){
+  [pName, pPrice, pPerPack, pPacks, rRolls, rPerRoll].forEach(function(el){
     el.addEventListener('keydown', function(e){
       if (e.key === 'Enter' && !pSaveBtn.disabled) doPaperSave();
     });
   });
 
   pClearBtn.addEventListener('click', function(){
-    if (!paperRecords.length) return;
-    if (!confirm('确定清空全部 ' + paperRecords.length + ' 条纸品记录？此操作无法撤销。')) return;
+    if (!confirm('确定清空全部纸品记录？此操作无法撤销。')) return;
     paperRecords = [];
     saveStore(PAPER_KEY, paperRecords);
     renderPaperHistory();
     renderPaperSimilar();
-    showToast('已清空全部纸品记录');
+    showToast('已清空');
   });
 
   pHistoryList.addEventListener('click', function(e){
@@ -1117,15 +1314,26 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
       if (paperRecords[i].id === rid) { rec = paperRecords[i]; break; }
     }
     if (!rec) return;
+    setPaperForm((rec.form || 'sheet') === 'roll' ? 'roll' : 'sheet');
     pName.value = rec.name;
     pPrice.value = rec.price;
-    pPerPack.value = rec.perPack;
-    pPacks.value = rec.packs;
+    if ((rec.form || 'sheet') === 'roll') {
+      rRolls.value = rec.rolls || '';
+      rPerRoll.value = rec.perRollSheets || '';
+      pPerPack.value = '';
+      pPacks.value = '';
+    } else {
+      pPerPack.value = rec.perPack;
+      pPacks.value = rec.packs;
+      rRolls.value = '';
+      rPerRoll.value = '';
+    }
     pPly.value = rec.ply || '';
     pLen.value = rec.len || '';
     pWid.value = rec.wid || '';
     setPaperStd(rec.std || '');
     setPaperGrade(rec.grade || '');
+    setPaperCat(categoryOf(rec));
     if (rec.ply || rec.len || rec.std || rec.grade) $('moreInfo').open = true;
     renderPaperResult();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1165,6 +1373,7 @@ h2{font-size:19px;font-weight:700;display:flex;align-items:center;}
   renderPaperResult();
 })();
 </script>
+
 
 
 
